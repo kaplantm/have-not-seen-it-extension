@@ -10,6 +10,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "run_at": "document_end",
       "css": ["/static/css/app.css", "/static/css/content.css"],
       "js": ["/static/js/0.chunk.js", "/static/js/content.js"]
     }

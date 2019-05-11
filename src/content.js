@@ -4,52 +4,81 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./content.css";
 
-class Main extends React.Component {
-  componentDidMount() {
-    console.log("did mount");
-    const url = window.location.href;
+// class Main extends React.Component {
+//   componentDidMount() {
 
-    console.log("url ", url);
-    const siteType = getSiteType(url);
+//   }
 
-    if (siteType) {
-      // Will need to do logic to get movie name
-      const movieTitle = "The Shawshank Redemption";
-      console.log("siteType ", siteType);
+//   render() {
+//     console.log(this.windowURL);
+//     return (
+//       <div className={"my-extension"}>
+//         <h1>Hello world - My first Extension</h1>
+//       </div>
+//     );
+//   }
+// }
+
+// const app = document.createElement("div");
+// app.id = "my-extension-root";
+
+// document.body.appendChild(app);
+// ReactDOM.render(<Main />, app);
+// app.style.display = "none";
+
+function init() {
+  // console.log("did mount");
+  const url = window.location.href;
+
+  // console.log("url ", url);
+  const siteType = getSiteType(url);
+
+  if (siteType) {
+    // Will need to do logic to get movie name
+    const movieTitle = findTitleForSite(siteType); //"The Shawshank Redemption";
+    // console.log("siteType movieTitle", siteType, movieTitle);
+    if (movieTitle) {
       //Request movie detected on page
-      chrome.runtime.sendMessage({ movieTitle: movieTitle, siteType });
+      chrome.runtime.sendMessage({ movieTitle, siteType });
     }
   }
-
-  render() {
-    console.log(this.windowURL);
-    return (
-      <div className={"my-extension"}>
-        <h1>Hello world - My first Extension</h1>
-      </div>
-    );
-  }
 }
+init();
 
-const app = document.createElement("div");
-app.id = "my-extension-root";
-
-document.body.appendChild(app);
-ReactDOM.render(<Main />, app);
-app.style.display = "none";
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  console.log("request", request);
+  // console.log("request", request);
   // if (request.message === "clicked_browser_action") {
   //   toggle();
   // }
-
-  if (request.movieSummary && request.siteType) {
+  const { movieSummaries, siteType } = request;
+  if (movieSummaries && siteType) {
     //Get summary and inject into page
-    console.log("movieSummary", request.movieSummary);
-    updateSummaries("test summary", request.siteType);
+    // console.log("movieSummary", movieSummaries);
+    updateSummaries(movieSummaries, siteType);
   }
 });
 
+function findTitleForSite(siteType) {
+  let titleText = null;
+  //TODO should replace two cases w/ obj that holds conditions for site
+  switch (siteType) {
+    case "imdb":
+      const titleElement = document.getElementsByTagName("H1")[0];
+      if (titleElement) {
+        const rawTitleText = titleElement.innerText;
+        titleText = rawTitleText.split(" (")[0];
+        const summaryFields = document.getElementsByClassName("summary_text");
+        // console.log("site is imdb");
+        Array.from(summaryFields).forEach(summaryField => {
+          summaryField.style.minHeight = "50px";
+        });
+      }
+      break;
+    default:
+    // console.log("not an included site, no title found, do nothing");
+  }
+  return titleText;
+}
 function getSiteType(url) {
   const sites = {
     imdb: "https://www.imdb.com/title/"
@@ -66,17 +95,19 @@ function getSiteType(url) {
   return siteType;
 }
 
-function updateSummaries(summary = "Some stuff happens, probably.", site) {
+function updateSummaries(summaries = ["Some stuff happens, probably."], site) {
+  const randomSummaryIndex = Math.floor(summaries.length * Math.random());
+  const randomSummary = summaries[randomSummaryIndex].content;
   switch (site) {
     case "imdb":
       const summaryFields = document.getElementsByClassName("summary_text");
-      console.log("site is imdb");
+      // console.log("site is imdb");
       Array.from(summaryFields).forEach(summaryField => {
-        summaryField.innerHTML = summary;
+        summaryField.innerHTML = randomSummary;
       });
       break;
     default:
-      console.log("not an included site, do nothing");
+    // console.log("not an included site, do nothing");
   }
 }
 

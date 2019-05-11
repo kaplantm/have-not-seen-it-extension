@@ -11,13 +11,13 @@
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.movieTitle && request.siteType) {
-    getSummaryAsync(request.movieTitle).then(movieSummary => {
-      console.log("before send", movieSummary);
+    getSummariesAsync(request.movieTitle).then(movieSummaries => {
+      // console.log("before send", movieSummaries);
       // sendResponse({ movieSummary, siteType: request.siteType });
       chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
         var activeTab = tabs[0];
         chrome.tabs.sendMessage(activeTab.id, {
-          movieSummary,
+          movieSummaries,
           siteType: request.siteType
         });
       });
@@ -63,9 +63,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 // }
 
 // add catch? So don't send data to tab if error
-async function getSummaryAsync(movieTitle) {
+async function getSummariesAsync(movieTitle) {
+  // console.log("encodedTitle", movieTitle);
   const encodedTitle = encodeURI(movieTitle);
-  const response = await fetch(
+
+  // console.log("encodedTitle", encodedTitle);
+  const movieResponse = await fetch(
     "http://localhost:3001/api/movies?title=" + encodedTitle,
     {
       method: "GET",
@@ -76,10 +79,30 @@ async function getSummaryAsync(movieTitle) {
       }
     }
   );
-  console.log({ response });
-  const summary = await response.json();
 
-  return summary;
+  const movies = await movieResponse.json();
+
+  if (!movies.length) {
+    return [];
+  }
+
+  const movie_id = movies[0].id;
+  // console.log("movie_id", movie_id);
+  const summariesResponse = await fetch(
+    "http://localhost:3001/api/summaries?movie_id=" + movie_id,
+    {
+      method: "GET",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      }
+    }
+  );
+  summaries = await summariesResponse.json();
+  // console.log(summaries);
+
+  return summaries;
 }
 
 // async function getMoviesAsync() {
